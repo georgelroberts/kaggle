@@ -277,29 +277,29 @@ def SGDFit():
                    'target_year', 'latitude', 'longitude', 'holiday_flg', 
                    'test','visitors']
     X = model_data[target_cols]
-    target_cols_fit = [col for col in X.columns if not col in ['test','visitors']]
+    target_cols_fit = [col for col in X.columns if col not in ['test','visitors']]
     Xsub=X[X['test']==1]
     X=X[X['test']==0]
-    
+
     Xsub = Xsub.drop(['test'],axis=1)
     X = X.drop(['test'],axis=1)
-    
+
     mod = SGDRegressor()
-    
+
     pipe = Pipeline([('scal',StandardScaler()),
                      ('clf',mod)])
-    
+
     X_train, X_test, y_train, y_test = train_test_split(X[target_cols_fit], 
                                                         X['visitors'],
                                                         test_size=0.15, 
                                                         random_state=42)
-    
+
     parameters = {'clf__alpha': np.logspace(-4,1,6)}
     pipe = GridSearchCV(pipe, parameters)
-    
+
     pipe.fit(X_train,y_train)
     print(pipe.best_params_)
-    
+
     #%%
     # Create a table of real vs predicted
     testIndices=X_test.index.values
@@ -307,15 +307,15 @@ def SGDFit():
                            index=testIndices)
     y_test.name='Real'
     resultsvsPredictions = pd.concat([prediction, y_test], axis=1)
-    
+
     scores = cross_val_score(pipe,X_test,y_test, scoring='neg_mean_squared_error')
     scores_base=cross_val_score(pipe, X_test,pd.Series(np.ones(len(y_test))*y_test.mean()))
-    
+
     print("Trained mean squared error is {:.1f} and untrained is {:.1f}"\
               .format(scores.mean(),scores_base.mean()))
-    
+
     #%% Do predictions for submission
-    
+
     Xsub['visitors']=pipe.predict(Xsub[target_cols_fit])
     SGD_sub=pd.read_csv('submissions/baseline.csv')
     SGD_sub.visitors = pipe.predict(Xsub[target_cols_fit])
